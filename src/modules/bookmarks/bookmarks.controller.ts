@@ -20,7 +20,7 @@ export class BookmarksController {
       properties: {
         data: {
           type: 'array',
-          items: { $ref: '#/components/schemas/BookmarkResponseDto' },
+          //   items: { $ref: '#/components/schemas/BookmarkResponseDto' },
         },
         meta: {
           type: 'object',
