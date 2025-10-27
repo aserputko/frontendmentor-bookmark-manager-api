@@ -1,12 +1,21 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { GetBookmarksQueryDto } from './dto/get-bookmarks-query.dto';
 import { GetBookmarksResponse } from './queries/get-bookmarks.handler';
 import { GetBookmarksQuery } from './queries/get-bookmarks.query';
 
 @Controller('bookmarks')
 @ApiTags('bookmarks')
+@ApiExtraModels(BookmarkResponseDto)
 export class BookmarksController {
   constructor(private readonly queryBus: QueryBus) {}
 
@@ -20,7 +29,7 @@ export class BookmarksController {
       properties: {
         data: {
           type: 'array',
-          //   items: { $ref: '#/components/schemas/BookmarkResponseDto' },
+          items: { $ref: getSchemaPath(BookmarkResponseDto) },
         },
         meta: {
           type: 'object',

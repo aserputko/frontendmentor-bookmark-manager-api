@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Tag } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -78,13 +78,14 @@ async function main() {
   });
 
   // Create Tags
-  const tags = await Promise.all(
-    Array.from(allTagTitles).map((title) =>
-      prisma.tag.upsert({
-        where: { title },
-        update: {},
-        create: { title },
-      }),
+  const tags: Tag[] = await Promise.all(
+    Array.from(allTagTitles).map(
+      (title): Promise<Tag> =>
+        prisma.tag.upsert({
+          where: { title },
+          update: {},
+          create: { title },
+        }) as Promise<Tag>,
     ),
   );
 
@@ -98,7 +99,9 @@ async function main() {
     });
 
     // Connect tags
-    const tagIds = tags.filter((tag) => data.tagTitles.includes(tag.title)).map((tag) => tag.id);
+    const tagIds: string[] = tags
+      .filter((tag: Tag) => data.tagTitles.includes(tag.title as string))
+      .map((tag: Tag) => tag.id as string);
 
     await prisma.bookmark.update({
       where: { id: bookmark.id },

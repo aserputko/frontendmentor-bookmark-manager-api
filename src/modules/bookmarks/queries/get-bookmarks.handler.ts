@@ -1,7 +1,16 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { BookmarkResponseDto } from '../dto/bookmark-response.dto';
 import { GetBookmarksQuery } from './get-bookmarks.query';
+
+type BookmarkWithTags = Prisma.BookmarkGetPayload<{
+  include: { tags: { include: { tag: true } } };
+}>;
+
+type TransformedBookmark = Omit<BookmarkWithTags, 'tags'> & {
+  tags: Array<{ id: string; title: string; createdAt: Date; updatedAt: Date }>;
+};
 
 export interface GetBookmarksResponse {
   data: BookmarkResponseDto[];
@@ -21,7 +30,7 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
     const { page, limit } = query;
     const skip = (page - 1) * limit;
 
-    const [bookmarks, total] = await Promise.all([
+    const [bookmarks, total]: [BookmarkWithTags[], number] = await Promise.all([
       this.prisma.bookmark.findMany({
         skip,
         take: limit,
@@ -39,10 +48,17 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
       this.prisma.bookmark.count(),
     ]);
 
-    const bookmarksWithTags = bookmarks.map((bookmark) => ({
-      ...bookmark,
-      tags: bookmark.tags.map((bt) => bt.tag),
-    }));
+    const bookmarksWithTags: TransformedBookmark[] = bookmarks.map(
+      (bookmark): TransformedBookmark => {
+        const { tags, ...rest } = bookmark;
+        return {
+          ...rest,
+          tags: tags.map(
+            (bt) => bt.tag as { id: string; title: string; createdAt: Date; updatedAt: Date },
+          ),
+        } as TransformedBookmark;
+      },
+    );
 
     const totalPages = Math.ceil(total / limit);
 
