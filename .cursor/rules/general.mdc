@@ -1,0 +1,477 @@
+---
+alwaysApply: true
+---
+
+# Cursor Editor Rules - NestJS Project
+
+## Technology Stack
+
+- NestJS (Node.js framework)
+- PostgreSQL (Database)
+- Prisma ORM (Database toolkit)
+- Docker (Containerization)
+- Swagger (API documentation)
+- CQRS Pattern (Commands & Queries)
+
+## Project Structure
+
+```
+src/
+├── modules/
+│   └── [feature]/
+│       ├── commands/
+│       │   ├── create-[feature].handler.ts
+│       │   └── create-[feature].command.ts
+│       ├── queries/
+│       │   ├── get-[feature].handler.ts
+│       │   └── get-[feature].query.ts
+│       ├── dto/
+│       │   ├── create-[feature].dto.ts
+│       │   └── [feature]-response.dto.ts
+│       ├── entities/
+│       │   └── [feature].entity.ts
+│       ├── [feature].controller.ts
+│       ├── [feature].service.ts
+│       └── [feature].module.ts
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+├── common/
+│   ├── decorators/
+│   ├── filters/
+│   ├── guards/
+│   ├── interceptors/
+│   └── pipes/
+└── config/
+```
+
+## Code Style Guidelines
+
+### 1. General Principles
+
+- Use TypeScript strict mode
+- Follow SOLID principles
+- Implement dependency injection
+- Use async/await over promises
+- Prefer composition over inheritance
+- Keep functions pure when possible
+- Use meaningful variable and function names
+
+### 2. NestJS Specifics
+
+#### Controllers
+
+```typescript
+@Controller('users')
+@ApiTags('users')
+export class UsersController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ status: 201, type: UserResponseDto })
+  async create(@Body() dto: CreateUserDto): Promise {
+    return this.commandBus.execute(new CreateUserCommand(dto));
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  async findOne(@Param('id') id: string): Promise {
+    return this.queryBus.execute(new GetUserQuery(id));
+  }
+}
+```
+
+#### Commands
+
+```typescript
+// create-user.command.ts
+export class CreateUserCommand {
+  constructor(public readonly dto: CreateUserDto) {}
+}
+
+// create-user.handler.ts
+@CommandHandler(CreateUserCommand)
+export class CreateUserHandler implements ICommandHandler {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async execute(command: CreateUserCommand): Promise {
+    const { dto } = command;
+
+    const user = await this.prisma.user.create({
+      data: dto,
+    });
+
+    return new UserResponseDto(user);
+  }
+}
+```
+
+#### Queries
+
+```typescript
+// get-user.query.ts
+export class GetUserQuery {
+  constructor(public readonly id: string) {}
+}
+
+// get-user.handler.ts
+@QueryHandler(GetUserQuery)
+export class GetUserHandler implements IQueryHandler {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async execute(query: GetUserQuery): Promise {
+    const user = await this.prisma.user.findUnique({
+      where: { id: query.id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${query.id} not found`);
+    }
+
+    return new UserResponseDto(user);
+  }
+}
+```
+
+#### DTOs
+
+```typescript
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, MinLength } from 'class-validator';
+
+export class CreateUserDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'John Doe', minLength: 2 })
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @ApiProperty({ example: 'password123', minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  password: string;
+}
+
+export class UserResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  email: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  constructor(partial: Partial) {
+    Object.assign(this, partial);
+  }
+}
+```
+
+#### Modules
+
+```typescript
+@Module({
+  imports: [CqrsModule],
+  controllers: [UsersController],
+  providers: [
+    UsersService,
+    PrismaService,
+    // Command Handlers
+    CreateUserHandler,
+    UpdateUserHandler,
+    DeleteUserHandler,
+    // Query Handlers
+    GetUserHandler,
+    GetUsersHandler,
+  ],
+  exports: [UsersService],
+})
+export class UsersModule {}
+```
+
+### 3. Prisma Guidelines
+
+#### Schema Definition
+
+```prisma
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("posts")
+}
+```
+
+#### Prisma Service
+
+```typescript
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+}
+```
+
+### 4. Docker Configuration
+
+#### Dockerfile
+
+```dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY prisma ./prisma/
+
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+RUN npx prisma generate
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY package*.json ./
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start:prod"]
+```
+
+#### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nestjs_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestjs_app
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+
+volumes:
+  postgres_data:
+```
+
+### 5. Error Handling
+
+```typescript
+// Global exception filter
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+
+    const status =
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const message =
+      exception instanceof HttpException ? exception.message : 'Internal server error';
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      message,
+    });
+  }
+}
+```
+
+### 6. Validation
+
+```typescript
+// main.ts
+app.useGlobalPipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
+  }),
+);
+```
+
+### 7. Swagger Configuration
+
+```typescript
+// main.ts
+const config = new DocumentBuilder()
+  .setTitle('API Documentation')
+  .setDescription('NestJS API with CQRS pattern')
+  .setVersion('1.0')
+  .addBearerAuth()
+  .build();
+
+const document = SwaggerModule.createDocument(app, config);
+SwaggerModule.setup('api/docs', app, document);
+```
+
+### 8. Environment Variables
+
+```typescript
+// .env
+NODE_ENV = development;
+PORT = 3000;
+
+DATABASE_URL = 'postgresql://user:password@localhost:5432/dbname';
+
+DB_USER = user;
+DB_PASSWORD = password;
+DB_NAME = dbname;
+```
+
+### 9. Testing Guidelines
+
+```typescript
+describe('CreateUserHandler', () => {
+  let handler: CreateUserHandler;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CreateUserHandler,
+        {
+          provide: PrismaService,
+          useValue: {
+            user: {
+              create: jest.fn(),
+            },
+          },
+        },
+      ],
+    }).compile();
+
+    handler = module.get(CreateUserHandler);
+    prisma = module.get(PrismaService);
+  });
+
+  it('should create a user', async () => {
+    const dto = { email: 'test@test.com', name: 'Test', password: 'pass' };
+    const command = new CreateUserCommand(dto);
+
+    jest.spyOn(prisma.user, 'create').mockResolvedValue({
+      id: '1',
+      ...dto,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await handler.execute(command);
+
+    expect(result).toBeDefined();
+    expect(result.email).toBe(dto.email);
+  });
+});
+```
+
+## Git & CI
+
+- Conventional Commits (feat:, fix:, refactor:). Keep messages short and imperative.
+- PRs must include: description, screenshots (UI), and test coverage where applicable.
+
+## Best Practices
+
+1. **Separation of Concerns**: Keep commands for write operations, queries for read operations
+2. **Single Responsibility**: Each handler should do one thing well
+3. **Immutability**: Commands and queries should be immutable
+4. **Type Safety**: Always use TypeScript types and interfaces
+5. **Error Handling**: Use NestJS exception filters and proper HTTP status codes
+6. **Documentation**: Always add Swagger decorators to endpoints
+7. **Validation**: Use class-validator for DTO validation
+8. **Database Migrations**: Always use Prisma migrations, never modify the database directly
+9. **Environment Config**: Never commit sensitive data, use .env files
+10. **Testing**: Write unit tests for handlers and integration tests for controllers
+
+## Common Commands
+
+```bash
+# Prisma
+npm run prisma:generate        # Generate Prisma Client
+npm run prisma:migrate         # Create migration
+npm run prisma:migrate:dev     # Apply migrations (dev)
+npm run prisma:migrate:deploy  # Apply migrations (prod)
+npm run prisma:studio          # Open Prisma Studio
+
+# Docker
+docker-compose up -d           # Start services
+docker-compose down            # Stop services
+docker-compose logs -f app     # View logs
+
+# Development
+npm run start:dev              # Start in dev mode
+npm run build                  # Build for production
+npm run start:prod             # Start production
+npm run test                   # Run tests
+```
