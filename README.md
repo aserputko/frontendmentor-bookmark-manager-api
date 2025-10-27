@@ -24,12 +24,48 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Bookmark Manager API - A NestJS application for managing bookmarks with tags. This API follows CQRS pattern and uses PostgreSQL with Prisma ORM.
+
+### Features
+
+- Get all bookmarks with pagination
+- Many-to-many relationship between bookmarks and tags
+- Swagger API documentation
+- Docker support with docker-compose
+
+## Prerequisites
+
+- Node.js (v20+)
+- PostgreSQL (or use Docker)
+- npm or yarn
 
 ## Project setup
 
 ```bash
+# Install dependencies
 $ npm install
+
+# Copy environment variables
+$ cp .env.example .env  # Update with your database credentials
+
+# Generate Prisma client
+$ npm run prisma:generate
+
+# Run database migrations
+$ npm run prisma:migrate:dev
+
+# Seed the database with sample data
+$ npm run prisma:seed
+```
+
+## Docker Setup
+
+```bash
+# Start PostgreSQL and app containers
+$ docker-compose up -d
+
+# Stop containers
+$ docker-compose down
 ```
 
 ## Compile and run the project
@@ -43,6 +79,80 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
+```
+
+## API Endpoints
+
+Once the application is running, you can access:
+
+- **Application**: `http://localhost:3000`
+- **Swagger Documentation**: `http://localhost:3000/api/docs`
+
+### Available Endpoints
+
+#### Get All Bookmarks
+
+```
+GET /bookmarks
+```
+
+**Query Parameters:**
+
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 10, max: 100)
+
+**Example:**
+
+```bash
+curl http://localhost:3000/bookmarks?page=1&limit=10
+```
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Example Title",
+      "description": "Example description",
+      "websiteURL": "https://example.com",
+      "tags": [
+        {
+          "id": "uuid",
+          "title": "JavaScript"
+        }
+      ],
+      "createdAt": "2025-10-27T00:00:00.000Z",
+      "updatedAt": "2025-10-27T00:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "total": 10,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 1
+  }
+}
+```
+
+## Prisma Commands
+
+```bash
+# Generate Prisma Client
+$ npm run prisma:generate
+
+# Create and apply migration
+$ npm run prisma:migrate:dev
+
+# Deploy migration (production)
+$ npm run prisma:migrate:deploy
+
+# Open Prisma Studio (database GUI)
+$ npm run prisma:studio
+
+# Seed database
+$ npm run prisma:seed
 ```
 
 ## Run tests
