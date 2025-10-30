@@ -1,56 +1,31 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import * as request from 'supertest';
 import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { cleanupDatabase, setupPrisma, setupTestApp, teardownTestApp } from './test-helpers';
 
-describe('Bookmarks (e2e)', () => {
+describe('GET /bookmarks (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaClient;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: {
-          enableImplicitConversion: true,
-        },
-      }),
-    );
-    await app.init();
-
-    prisma = new PrismaClient();
-    await prisma.$connect();
+    app = await setupTestApp();
+    prisma = await setupPrisma();
   });
 
   afterAll(async () => {
-    await prisma.$disconnect();
-    await app.close();
+    await teardownTestApp(app, prisma);
   });
 
   beforeEach(async () => {
-    // Clean database before each test
-    await prisma.bookmarkTag.deleteMany({});
-    await prisma.bookmark.deleteMany({});
-    await prisma.tag.deleteMany({});
+    await cleanupDatabase(prisma);
   });
 
   afterEach(async () => {
-    // Clean database after each test
-    await prisma.bookmarkTag.deleteMany({});
-    await prisma.bookmark.deleteMany({});
-    await prisma.tag.deleteMany({});
+    await cleanupDatabase(prisma);
   });
 
-  it('/bookmarks (GET) - should return empty array when no bookmarks exist', async () => {
+  it('should return empty array when no bookmarks exist', async () => {
     const response = await request(app.getHttpServer()).get('/bookmarks').expect(200);
 
     expect(response.body).toEqual({
@@ -64,7 +39,7 @@ describe('Bookmarks (e2e)', () => {
     });
   });
 
-  it('/bookmarks (GET) - should return all bookmarks with tags', async () => {
+  it('should return all bookmarks with tags', async () => {
     // Create test tags
     const tag1 = await prisma.tag.create({
       data: { title: 'JavaScript' },
@@ -124,7 +99,7 @@ describe('Bookmarks (e2e)', () => {
     expect(bookmark2Response.tags).toHaveLength(1);
   });
 
-  it('/bookmarks (GET) - should support pagination', async () => {
+  it('should support pagination', async () => {
     // Create 15 test bookmarks
     await prisma.bookmark.createMany({
       data: Array.from({ length: 15 }, (_, i) => ({
@@ -161,7 +136,7 @@ describe('Bookmarks (e2e)', () => {
     });
   });
 
-  it('/bookmarks (GET) - should order bookmarks by createdAt desc', async () => {
+  it('should order bookmarks by createdAt desc', async () => {
     // Create bookmarks with delay to ensure different timestamps
     const bookmark1 = await prisma.bookmark.create({
       data: {
@@ -187,7 +162,7 @@ describe('Bookmarks (e2e)', () => {
     expect(response.body.data[1].id).toBe(bookmark1.id);
   });
 
-  it('/bookmarks (GET) - should handle bookmarks without tags', async () => {
+  it('should handle bookmarks without tags', async () => {
     await prisma.bookmark.create({
       data: {
         title: 'Untagged Bookmark',
