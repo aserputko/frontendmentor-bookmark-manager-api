@@ -1,5 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiExtraModels,
   ApiOperation,
@@ -8,6 +8,8 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
+import { CreateBookmarkCommand } from './commands/create-bookmark.command';
+import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { GetBookmarksQueryDto } from './dto/get-bookmarks-query.dto';
 import { GetBookmarksResponse } from './queries/get-bookmarks.handler';
@@ -17,7 +19,10 @@ import { GetBookmarksQuery } from './queries/get-bookmarks.query';
 @ApiTags('bookmarks')
 @ApiExtraModels(BookmarkResponseDto)
 export class BookmarksController {
-  constructor(private readonly queryBus: QueryBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all bookmarks' })
@@ -50,5 +55,16 @@ export class BookmarksController {
     const limit = query.limit || 10;
 
     return this.queryBus.execute(new GetBookmarksQuery(page, limit));
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new bookmark' })
+  @ApiResponse({
+    status: 201,
+    description: 'Bookmark created successfully',
+    type: BookmarkResponseDto,
+  })
+  async create(@Body() dto: CreateBookmarkDto): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new CreateBookmarkCommand(dto));
   }
 }

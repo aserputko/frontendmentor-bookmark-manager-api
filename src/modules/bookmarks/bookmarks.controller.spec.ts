@@ -1,13 +1,15 @@
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Test, TestingModule } from '@nestjs/testing';
 import { BookmarksController } from './bookmarks.controller';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
+import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 import { TagResponseDto } from './dto/tag-response.dto';
 import { GetBookmarksResponse } from './queries/get-bookmarks.handler';
 import { GetBookmarksQuery } from './queries/get-bookmarks.query';
 
 describe('BookmarksController', () => {
   let controller: BookmarksController;
+  let commandBus: CommandBus;
   let queryBus: QueryBus;
 
   const mockBookmark: BookmarkResponseDto = {
@@ -42,6 +44,12 @@ describe('BookmarksController', () => {
       controllers: [BookmarksController],
       providers: [
         {
+          provide: CommandBus,
+          useValue: {
+            execute: jest.fn(),
+          },
+        },
+        {
           provide: QueryBus,
           useValue: {
             execute: jest.fn(),
@@ -51,6 +59,7 @@ describe('BookmarksController', () => {
     }).compile();
 
     controller = module.get<BookmarksController>(BookmarksController);
+    commandBus = module.get<CommandBus>(CommandBus);
     queryBus = module.get<QueryBus>(QueryBus);
   });
 
@@ -119,6 +128,62 @@ describe('BookmarksController', () => {
 
       expect(result).toEqual(emptyResponse);
       expect(result.data).toHaveLength(0);
+    });
+  });
+
+  describe('create', () => {
+    it('should create a bookmark', async () => {
+      const dto: CreateBookmarkDto = {
+        title: 'New Bookmark',
+        description: 'New Description',
+        websiteURL: 'https://example.com',
+        tags: ['JavaScript', 'Node.js'],
+      };
+
+      jest.spyOn(commandBus, 'execute').mockResolvedValue(mockBookmark);
+
+      const result = await controller.create(dto);
+
+      expect(result).toEqual(mockBookmark);
+      expect(commandBus.execute).toHaveBeenCalled();
+    });
+
+    it('should create a bookmark without description', async () => {
+      const dto: CreateBookmarkDto = {
+        title: 'New Bookmark',
+        websiteURL: 'https://example.com',
+      };
+
+      const bookmarkWithoutDescription = {
+        ...mockBookmark,
+        description: null,
+      };
+
+      jest.spyOn(commandBus, 'execute').mockResolvedValue(bookmarkWithoutDescription);
+
+      const result = await controller.create(dto);
+
+      expect(result).toEqual(bookmarkWithoutDescription);
+      expect(commandBus.execute).toHaveBeenCalled();
+    });
+
+    it('should create a bookmark without tags', async () => {
+      const dto: CreateBookmarkDto = {
+        title: 'New Bookmark',
+        websiteURL: 'https://example.com',
+      };
+
+      const bookmarkWithoutTags = {
+        ...mockBookmark,
+        tags: [],
+      };
+
+      jest.spyOn(commandBus, 'execute').mockResolvedValue(bookmarkWithoutTags);
+
+      const result = await controller.create(dto);
+
+      expect(result).toEqual(bookmarkWithoutTags);
+      expect(commandBus.execute).toHaveBeenCalled();
     });
   });
 });
