@@ -1,0 +1,62 @@
+name: Deploy Manual
+
+on:
+    workflow_dispatch:
+        inputs:
+            environment:
+                description: "Target environment"
+                required: true
+                type: choice
+                options:
+                    - DEV
+                    - STAGING
+                    - PROD
+            branch:
+                description: "Branch to deploy"
+                required: true
+                type: string
+                default: main
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    build-and-push:
+        name: Build and Push Docker Image
+        runs-on: ubuntu-latest
+        environment: ${{ github.event.inputs.environment }}
+        env:
+            AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+            AWS_REGION: ${{ secrets.AWS_REGION }}
+            AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
+            AWS_ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.inputs.branch }}
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ env.AWS_ROLE_ARN }}
+                  aws-region: ${{ env.AWS_REGION }}
+                  role-session-name: GitHubActions-${{ github.run_id }}
+
+            - name: Login to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build, tag, and push image to Amazon ECR
+              uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  push: true
+                  tags: ${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
+                  cache-from: type=registry,ref=${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
+                  cache-to: type=inline
