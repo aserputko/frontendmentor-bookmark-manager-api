@@ -23,6 +23,8 @@ jobs:
             AWS_REGION: ${{ secrets.AWS_REGION }}
             AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
             AWS_ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+            AWS_ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}
+            AWS_ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}
 
         steps:
             - name: Checkout code
@@ -53,3 +55,10 @@ jobs:
                   tags: ${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-from: type=registry,ref=${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-to: type=inline
+            - name: Force ECS deployment
+              run: |
+                  aws ecs update-service \
+                      --cluster ${{ env.AWS_ECS_CLUSTER }} \
+                      --service ${{ env.AWS_ECS_SERVICE }} \
+                      --force-new-deployment \
+                      --region ${{ env.AWS_REGION }}
