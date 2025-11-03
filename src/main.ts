@@ -6,6 +6,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable shutdown hooks for graceful termination
+  app.enableShutdownHooks();
+
   // Enable CORS
   app.enableCors({
     origin: process.env.CORS_ORIGIN,
@@ -32,6 +35,7 @@ async function bootstrap() {
     .setDescription('API for managing bookmarks with tags')
     .setVersion('1.0')
     .addTag('bookmarks')
+    .addTag('health')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
