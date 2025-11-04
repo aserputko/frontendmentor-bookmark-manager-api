@@ -1,36 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsNotEmpty, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
-
+import { BOOKMARK_CONSTANTS } from '../constants/bookmark.constants';
 export class CreateBookmarkDto {
   @ApiProperty({
     example: 'NestJS Official Documentation',
     description: 'Bookmark title',
-    maxLength: 280,
+    maxLength: BOOKMARK_CONSTANTS.MAX_TITLE_LENGTH,
   })
   @IsNotEmpty()
   @IsString()
-  @MaxLength(280)
+  @MaxLength(BOOKMARK_CONSTANTS.MAX_TITLE_LENGTH)
   title: string;
 
   @ApiProperty({
     example: 'Progressive Node.js framework',
     description: 'Bookmark description',
     required: false,
-    maxLength: 280,
+    maxLength: BOOKMARK_CONSTANTS.MAX_DESCRIPTION_LENGTH,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(280)
+  @MaxLength(BOOKMARK_CONSTANTS.MAX_DESCRIPTION_LENGTH)
   description?: string;
 
   @ApiProperty({
     example: 'https://nestjs.com',
     description: 'Website URL',
-    maxLength: 1024,
+    maxLength: BOOKMARK_CONSTANTS.MAX_URL_LENGTH,
   })
   @IsNotEmpty()
   @IsUrl()
-  @MaxLength(1024)
+  @MaxLength(BOOKMARK_CONSTANTS.MAX_URL_LENGTH)
   websiteURL: string;
 
   @ApiProperty({
