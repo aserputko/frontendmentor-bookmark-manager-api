@@ -1,11 +1,14 @@
 FROM node:20-alpine AS builder
 
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
 
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm ci --no-audit --prefer-offline
 
 COPY . .
 

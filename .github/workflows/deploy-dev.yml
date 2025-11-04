@@ -51,7 +51,7 @@ jobs:
               with:
                   context: .
                   push: true
-                  platforms: linux/arm64/v8
+                  platforms: linux/amd64,linux/arm64
                   tags: ${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-from: type=registry,ref=${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-to: type=inline
