@@ -1,5 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { UpdateBookmarkDto } from '../dto/update-bookmark.dto';
 import { UpdateBookmarkCommand } from './update-bookmark.command';
@@ -684,4 +684,3 @@ describe('UpdateBookmarkHandler', () => {
     });
   });
 });
-

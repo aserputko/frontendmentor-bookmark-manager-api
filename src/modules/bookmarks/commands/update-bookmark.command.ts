@@ -6,4 +6,3 @@ export class UpdateBookmarkCommand {
     public readonly dto: UpdateBookmarkDto,
   ) {}
 }
-

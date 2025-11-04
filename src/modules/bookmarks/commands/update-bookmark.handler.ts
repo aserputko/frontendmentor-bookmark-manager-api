@@ -1,5 +1,5 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { NotFoundException } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { BookmarkResponseDto } from '../dto/bookmark-response.dto';
@@ -32,7 +32,7 @@ export class UpdateBookmarkHandler implements ICommandHandler<UpdateBookmarkComm
     // Execute everything in a single transaction
     const bookmark = await this.prisma.$transaction(async (tx) => {
       // Update bookmark
-      const updatedBookmark = await tx.bookmark.update({
+      await tx.bookmark.update({
         where: { id },
         data: {
           title: dto.title,
@@ -114,4 +114,3 @@ export class UpdateBookmarkHandler implements ICommandHandler<UpdateBookmarkComm
     return new BookmarkResponseDto(bookmark);
   }
 }
-
