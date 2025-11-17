@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class GetBookmarksQueryDto {
   @ApiProperty({
@@ -27,4 +27,13 @@ export class GetBookmarksQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+
+  @ApiProperty({
+    example: 'javascript',
+    description: 'Search bookmarks by title (partial match, case-insensitive)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

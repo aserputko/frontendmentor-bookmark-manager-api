@@ -53,11 +53,12 @@ export class BookmarksController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'search', required: false, type: String, example: 'javascript' })
   async findAll(@Query() query: GetBookmarksQueryDto): Promise<GetBookmarksResponse> {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return this.queryBus.execute(new GetBookmarksQuery(page, limit));
+    return this.queryBus.execute(new GetBookmarksQuery(page, limit, query.search));
   }
 
   @Post()

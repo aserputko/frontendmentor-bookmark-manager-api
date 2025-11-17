@@ -27,11 +27,22 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetBookmarksQuery): Promise<GetBookmarksResponse> {
-    const { page, limit } = query;
+    const { page, limit, search } = query;
     const skip = (page - 1) * limit;
+
+    const where =
+      search && search.trim().length > 0
+        ? {
+            title: {
+              contains: search,
+              mode: 'insensitive' as const,
+            },
+          }
+        : undefined;
 
     const [bookmarks, total]: [BookmarkWithTags[], number] = await Promise.all([
       this.prisma.bookmark.findMany({
+        where,
         skip,
         take: limit,
         orderBy: {
@@ -45,7 +56,7 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
           },
         },
       }),
-      this.prisma.bookmark.count(),
+      this.prisma.bookmark.count({ where }),
     ]);
 
     const bookmarksWithTags: TransformedBookmark[] = bookmarks.map(

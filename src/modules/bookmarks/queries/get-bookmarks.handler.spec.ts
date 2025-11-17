@@ -85,6 +85,7 @@ describe('GetBookmarksHandler', () => {
       expect(result.meta.limit).toBe(10);
       expect(result.meta.totalPages).toBe(1);
       expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: undefined,
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -96,6 +97,7 @@ describe('GetBookmarksHandler', () => {
           },
         },
       });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
     });
 
     it('should calculate skip correctly for page 2', async () => {
@@ -170,6 +172,204 @@ describe('GetBookmarksHandler', () => {
       const result = await handler.execute(new GetBookmarksQuery(1, 10));
 
       expect(result.data[0].tags).toHaveLength(0);
+    });
+
+    it('should filter bookmarks by search term', async () => {
+      const filteredBookmarks = [mockBookmarks[0]];
+      const query = new GetBookmarksQuery(1, 10, 'Bookmark 1');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(filteredBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      const result = await handler.execute(query);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: {
+          title: {
+            contains: 'Bookmark 1',
+            mode: 'insensitive',
+          },
+        },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({
+        where: {
+          title: {
+            contains: 'Bookmark 1',
+            mode: 'insensitive',
+          },
+        },
+      });
+    });
+
+    it('should perform case-insensitive search', async () => {
+      const filteredBookmarks = [mockBookmarks[0]];
+      const query = new GetBookmarksQuery(1, 10, 'bookmark 1');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(filteredBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            title: {
+              contains: 'bookmark 1',
+              mode: 'insensitive',
+            },
+          },
+        }),
+      );
+    });
+
+    it('should perform partial match search', async () => {
+      const filteredBookmarks = [mockBookmarks[0]];
+      const query = new GetBookmarksQuery(1, 10, 'mark');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(filteredBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            title: {
+              contains: 'mark',
+              mode: 'insensitive',
+            },
+          },
+        }),
+      );
+    });
+
+    it('should apply search filter to count query', async () => {
+      const query = new GetBookmarksQuery(1, 10, 'javascript');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue([]);
+      mockPrismaService.bookmark.count.mockResolvedValue(5);
+
+      const result = await handler.execute(query);
+
+      expect(result.meta.total).toBe(5);
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({
+        where: {
+          title: {
+            contains: 'javascript',
+            mode: 'insensitive',
+          },
+        },
+      });
+    });
+
+    it('should combine search with pagination', async () => {
+      const query = new GetBookmarksQuery(2, 5, 'react');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue([mockBookmarks[0]]);
+      mockPrismaService.bookmark.count.mockResolvedValue(12);
+
+      const result = await handler.execute(query);
+
+      expect(result.meta.page).toBe(2);
+      expect(result.meta.limit).toBe(5);
+      expect(result.meta.total).toBe(12);
+      expect(result.meta.totalPages).toBe(3); // Math.ceil(12 / 5) = 3
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            title: {
+              contains: 'react',
+              mode: 'insensitive',
+            },
+          },
+          skip: 5,
+          take: 5,
+        }),
+      );
+    });
+
+    it('should not apply search filter when search is undefined', async () => {
+      const query = new GetBookmarksQuery(1, 10);
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(mockBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(2);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+    });
+
+    it('should not apply search filter when search is empty string', async () => {
+      const query = new GetBookmarksQuery(1, 10, '');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(mockBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(2);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+    });
+
+    it('should not apply search filter when search is only whitespace', async () => {
+      const query = new GetBookmarksQuery(1, 10, '   ');
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(mockBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(2);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
     });
   });
 });

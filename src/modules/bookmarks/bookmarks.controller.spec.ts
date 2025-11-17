@@ -111,6 +111,31 @@ describe('BookmarksController', () => {
       expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(3, 10));
     });
 
+    it('should pass search parameter to query', async () => {
+      jest.spyOn(queryBus, 'execute').mockResolvedValue(mockResponse);
+
+      await controller.findAll({ search: 'javascript' });
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10, 'javascript'));
+    });
+
+    it('should pass search parameter with pagination', async () => {
+      const customResponse: GetBookmarksResponse = {
+        ...mockResponse,
+        meta: {
+          ...mockResponse.meta,
+          page: 2,
+          limit: 5,
+        },
+      };
+
+      jest.spyOn(queryBus, 'execute').mockResolvedValue(customResponse);
+
+      await controller.findAll({ page: 2, limit: 5, search: 'react' });
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5, 'react'));
+    });
+
     it('should handle empty results', async () => {
       const emptyResponse: GetBookmarksResponse = {
         data: [],
