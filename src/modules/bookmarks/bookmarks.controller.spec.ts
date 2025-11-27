@@ -17,6 +17,7 @@ describe('BookmarksController', () => {
     title: 'Test Bookmark',
     description: 'Test Description',
     websiteURL: 'https://example.com',
+    archived: false,
     tags: [
       {
         id: 'tag-id-1',
@@ -74,7 +75,7 @@ describe('BookmarksController', () => {
       const result = await controller.findAll({});
 
       expect(result).toEqual(mockResponse);
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10, undefined, false));
     });
 
     it('should return bookmarks with custom pagination', async () => {
@@ -92,7 +93,7 @@ describe('BookmarksController', () => {
       const result = await controller.findAll({ page: 2, limit: 5 });
 
       expect(result).toEqual(customResponse);
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5, undefined, false));
     });
 
     it('should use default page when not provided', async () => {
@@ -100,7 +101,7 @@ describe('BookmarksController', () => {
 
       await controller.findAll({ limit: 20 });
 
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 20));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 20, undefined, false));
     });
 
     it('should use default limit when not provided', async () => {
@@ -108,7 +109,7 @@ describe('BookmarksController', () => {
 
       await controller.findAll({ page: 3 });
 
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(3, 10));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(3, 10, undefined, false));
     });
 
     it('should pass search parameter to query', async () => {
@@ -116,7 +117,9 @@ describe('BookmarksController', () => {
 
       await controller.findAll({ search: 'javascript' });
 
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10, 'javascript'));
+      expect(queryBus.execute).toHaveBeenCalledWith(
+        new GetBookmarksQuery(1, 10, 'javascript', false),
+      );
     });
 
     it('should pass search parameter with pagination', async () => {
@@ -133,7 +136,40 @@ describe('BookmarksController', () => {
 
       await controller.findAll({ page: 2, limit: 5, search: 'react' });
 
-      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5, 'react'));
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5, 'react', false));
+    });
+
+    it('should pass archived parameter to query', async () => {
+      jest.spyOn(queryBus, 'execute').mockResolvedValue(mockResponse);
+
+      await controller.findAll({ archived: true });
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10, undefined, true));
+    });
+
+    it('should default archived to false when undefined', async () => {
+      jest.spyOn(queryBus, 'execute').mockResolvedValue(mockResponse);
+
+      await controller.findAll({});
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(1, 10, undefined, false));
+    });
+
+    it('should combine archived with search and pagination', async () => {
+      const customResponse: GetBookmarksResponse = {
+        ...mockResponse,
+        meta: {
+          ...mockResponse.meta,
+          page: 2,
+          limit: 5,
+        },
+      };
+
+      jest.spyOn(queryBus, 'execute').mockResolvedValue(customResponse);
+
+      await controller.findAll({ page: 2, limit: 5, search: 'react', archived: true });
+
+      expect(queryBus.execute).toHaveBeenCalledWith(new GetBookmarksQuery(2, 5, 'react', true));
     });
 
     it('should handle empty results', async () => {

@@ -85,7 +85,7 @@ describe('GetBookmarksHandler', () => {
       expect(result.meta.limit).toBe(10);
       expect(result.meta.totalPages).toBe(1);
       expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
-        where: undefined,
+        where: { archived: false },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -97,7 +97,7 @@ describe('GetBookmarksHandler', () => {
           },
         },
       });
-      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
     });
 
     it('should calculate skip correctly for page 2', async () => {
@@ -191,6 +191,7 @@ describe('GetBookmarksHandler', () => {
             contains: 'Bookmark 1',
             mode: 'insensitive',
           },
+          archived: false,
         },
         skip: 0,
         take: 10,
@@ -209,6 +210,7 @@ describe('GetBookmarksHandler', () => {
             contains: 'Bookmark 1',
             mode: 'insensitive',
           },
+          archived: false,
         },
       });
     });
@@ -229,6 +231,7 @@ describe('GetBookmarksHandler', () => {
               contains: 'bookmark 1',
               mode: 'insensitive',
             },
+            archived: false,
           },
         }),
       );
@@ -250,6 +253,7 @@ describe('GetBookmarksHandler', () => {
               contains: 'mark',
               mode: 'insensitive',
             },
+            archived: false,
           },
         }),
       );
@@ -270,6 +274,7 @@ describe('GetBookmarksHandler', () => {
             contains: 'javascript',
             mode: 'insensitive',
           },
+          archived: false,
         },
       });
     });
@@ -293,6 +298,7 @@ describe('GetBookmarksHandler', () => {
               contains: 'react',
               mode: 'insensitive',
             },
+            archived: false,
           },
           skip: 5,
           take: 5,
@@ -309,7 +315,7 @@ describe('GetBookmarksHandler', () => {
       await handler.execute(query);
 
       expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
-        where: undefined,
+        where: { archived: false },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -321,7 +327,7 @@ describe('GetBookmarksHandler', () => {
           },
         },
       });
-      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
     });
 
     it('should not apply search filter when search is empty string', async () => {
@@ -333,7 +339,7 @@ describe('GetBookmarksHandler', () => {
       await handler.execute(query);
 
       expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
-        where: undefined,
+        where: { archived: false },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -345,7 +351,7 @@ describe('GetBookmarksHandler', () => {
           },
         },
       });
-      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
     });
 
     it('should not apply search filter when search is only whitespace', async () => {
@@ -357,7 +363,7 @@ describe('GetBookmarksHandler', () => {
       await handler.execute(query);
 
       expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
-        where: undefined,
+        where: { archived: false },
         skip: 0,
         take: 10,
         orderBy: { createdAt: 'desc' },
@@ -369,7 +375,125 @@ describe('GetBookmarksHandler', () => {
           },
         },
       });
-      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: undefined });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
+    });
+
+    it('should filter bookmarks by archived=true', async () => {
+      const archivedBookmarks = [mockBookmarks[0]];
+      const query = new GetBookmarksQuery(1, 10, undefined, true);
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(archivedBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      const result = await handler.execute(query);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: { archived: true },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: true } });
+    });
+
+    it('should filter bookmarks by archived=false', async () => {
+      const query = new GetBookmarksQuery(1, 10, undefined, false);
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(mockBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(2);
+
+      const result = await handler.execute(query);
+
+      expect(result.data).toHaveLength(2);
+      expect(result.meta.total).toBe(2);
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: { archived: false },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
+    });
+
+    it('should default archived to false when undefined', async () => {
+      const query = new GetBookmarksQuery(1, 10);
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(mockBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(2);
+
+      await handler.execute(query);
+
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: { archived: false },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({ where: { archived: false } });
+    });
+
+    it('should combine archived filter with search filter', async () => {
+      const filteredBookmarks = [mockBookmarks[0]];
+      const query = new GetBookmarksQuery(1, 10, 'Bookmark 1', true);
+
+      mockPrismaService.bookmark.findMany.mockResolvedValue(filteredBookmarks);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      const result = await handler.execute(query);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(mockPrismaService.bookmark.findMany).toHaveBeenCalledWith({
+        where: {
+          title: {
+            contains: 'Bookmark 1',
+            mode: 'insensitive',
+          },
+          archived: true,
+        },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      });
+      expect(mockPrismaService.bookmark.count).toHaveBeenCalledWith({
+        where: {
+          title: {
+            contains: 'Bookmark 1',
+            mode: 'insensitive',
+          },
+          archived: true,
+        },
+      });
     });
   });
 });

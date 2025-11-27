@@ -177,6 +177,189 @@ describe('GET /bookmarks (e2e)', () => {
     expect(response.body.data[0].tags).toEqual([]);
   });
 
+  describe('archived filter', () => {
+    it('should filter archived bookmarks when archived=true', async () => {
+      // Create archived and non-archived bookmarks
+      const archivedBookmark = await prisma.bookmark.create({
+        data: {
+          title: 'Archived Bookmark',
+          websiteURL: 'https://archived.com',
+          archived: true,
+        },
+      });
+
+      await prisma.bookmark.create({
+        data: {
+          title: 'Active Bookmark',
+          websiteURL: 'https://active.com',
+          archived: false,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/bookmarks?archived=true')
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe(archivedBookmark.id);
+      expect(response.body.meta.total).toBe(1);
+    });
+
+    it('should filter non-archived bookmarks when archived=false', async () => {
+      // Create archived and non-archived bookmarks
+      await prisma.bookmark.create({
+        data: {
+          title: 'Archived Bookmark',
+          websiteURL: 'https://archived.com',
+          archived: true,
+        },
+      });
+
+      const nonArchivedBookmark = await prisma.bookmark.create({
+        data: {
+          title: 'Active Bookmark',
+          websiteURL: 'https://active.com',
+          archived: false,
+        },
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/bookmarks?archived=false')
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe(nonArchivedBookmark.id);
+      expect(response.body.meta.total).toBe(1);
+    });
+
+    it('should default to archived=false when archived parameter is undefined', async () => {
+      // Create archived and non-archived bookmarks
+      await prisma.bookmark.create({
+        data: {
+          title: 'Archived Bookmark',
+          websiteURL: 'https://archived.com',
+          archived: true,
+        },
+      });
+
+      const nonArchivedBookmark = await prisma.bookmark.create({
+        data: {
+          title: 'Active Bookmark',
+          websiteURL: 'https://active.com',
+          archived: false,
+        },
+      });
+
+      const response = await request(app.getHttpServer()).get('/bookmarks').expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe(nonArchivedBookmark.id);
+      expect(response.body.meta.total).toBe(1);
+    });
+
+    it('should combine archived filter with pagination', async () => {
+      // Create archived bookmarks
+      await prisma.bookmark.createMany({
+        data: Array.from({ length: 15 }, (_, i) => ({
+          title: `Archived Bookmark ${i + 1}`,
+          websiteURL: `https://archived${i + 1}.com`,
+          archived: true,
+        })),
+      });
+
+      // Create non-archived bookmarks
+      await prisma.bookmark.createMany({
+        data: Array.from({ length: 5 }, (_, i) => ({
+          title: `Active Bookmark ${i + 1}`,
+          websiteURL: `https://active${i + 1}.com`,
+          archived: false,
+        })),
+      });
+
+      // Test pagination with archived=true
+      const page1Response = await request(app.getHttpServer())
+        .get('/bookmarks?archived=true&page=1&limit=10')
+        .expect(200);
+
+      expect(page1Response.body.data).toHaveLength(10);
+      expect(page1Response.body.meta).toEqual({
+        total: 15,
+        page: 1,
+        limit: 10,
+        totalPages: 2,
+      });
+
+      // Test pagination with archived=false
+      const activeResponse = await request(app.getHttpServer())
+        .get('/bookmarks?archived=false&page=1&limit=10')
+        .expect(200);
+
+      expect(activeResponse.body.data).toHaveLength(5);
+      expect(activeResponse.body.meta).toEqual({
+        total: 5,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
+    });
+
+    it('should correctly parse archived=false string query parameter', async () => {
+      // Create archived and non-archived bookmarks
+      await prisma.bookmark.create({
+        data: {
+          title: 'Archived Bookmark',
+          websiteURL: 'https://archived.com',
+          archived: true,
+        },
+      });
+
+      const nonArchivedBookmark = await prisma.bookmark.create({
+        data: {
+          title: 'Active Bookmark',
+          websiteURL: 'https://active.com',
+          archived: false,
+        },
+      });
+
+      // Test with string "false" (as Swagger sends it)
+      const response = await request(app.getHttpServer())
+        .get('/bookmarks?archived=false')
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe(nonArchivedBookmark.id);
+      expect(response.body.meta.total).toBe(1);
+    });
+
+    it('should correctly parse archived=true string query parameter', async () => {
+      // Create archived and non-archived bookmarks
+      const archivedBookmark = await prisma.bookmark.create({
+        data: {
+          title: 'Archived Bookmark',
+          websiteURL: 'https://archived.com',
+          archived: true,
+        },
+      });
+
+      await prisma.bookmark.create({
+        data: {
+          title: 'Active Bookmark',
+          websiteURL: 'https://active.com',
+          archived: false,
+        },
+      });
+
+      // Test with string "true" (as Swagger sends it)
+      const response = await request(app.getHttpServer())
+        .get('/bookmarks?archived=true')
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].id).toBe(archivedBookmark.id);
+      expect(response.body.meta.total).toBe(1);
+    });
+  });
+
   describe('POST /bookmarks', () => {
     it('should create a bookmark with all fields', async () => {
       const createDto = {

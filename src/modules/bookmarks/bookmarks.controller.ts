@@ -54,11 +54,27 @@ export class BookmarksController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String, example: 'javascript' })
-  async findAll(@Query() query: GetBookmarksQueryDto): Promise<GetBookmarksResponse> {
+  @ApiQuery({ name: 'archived', required: false, type: Boolean, example: false })
+  async findAll(
+    @Query() query: GetBookmarksQueryDto,
+    @Query('archived') rawArchived?: string | boolean,
+  ): Promise<GetBookmarksResponse> {
     const page = query.page || 1;
     const limit = query.limit || 10;
 
-    return this.queryBus.execute(new GetBookmarksQuery(page, limit, query.search));
+    // Parse archived value - prioritize raw value to avoid transformation issues
+    let archived: boolean;
+    if (rawArchived !== undefined) {
+      // Parse raw value directly to avoid DTO transformation issues
+      const lowerValue = String(rawArchived).toLowerCase().trim();
+      archived = lowerValue === 'true' || lowerValue === '1';
+    } else if (query.archived !== undefined && typeof query.archived === 'boolean') {
+      archived = query.archived;
+    } else {
+      archived = false;
+    }
+
+    return this.queryBus.execute(new GetBookmarksQuery(page, limit, query.search, archived));
   }
 
   @Post()
