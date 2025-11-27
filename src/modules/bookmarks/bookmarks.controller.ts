@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiExtraModels,
@@ -9,7 +9,9 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
+import { ArchiveBookmarkCommand } from './commands/archive-bookmark.command';
 import { CreateBookmarkCommand } from './commands/create-bookmark.command';
+import { UnarchiveBookmarkCommand } from './commands/unarchive-bookmark.command';
 import { UpdateBookmarkCommand } from './commands/update-bookmark.command';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
@@ -53,7 +55,7 @@ export class BookmarksController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({ name: 'search', required: false, type: String, example: 'javascript' })
+  @ApiQuery({ name: 'search', required: false, type: String, example: '' })
   @ApiQuery({ name: 'archived', required: false, type: Boolean, example: false })
   async findAll(
     @Query() query: GetBookmarksQueryDto,
@@ -109,5 +111,45 @@ export class BookmarksController {
     @Body() dto: UpdateBookmarkDto,
   ): Promise<BookmarkResponseDto> {
     return this.commandBus.execute(new UpdateBookmarkCommand(id, dto));
+  }
+
+  @Patch(':id/archive')
+  @ApiOperation({ summary: 'Archive a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bookmark archived successfully',
+    type: BookmarkResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async archive(@Param('id') id: string): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new ArchiveBookmarkCommand(id));
+  }
+
+  @Patch(':id/unarchive')
+  @ApiOperation({ summary: 'Unarchive a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bookmark unarchived successfully',
+    type: BookmarkResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async unarchive(@Param('id') id: string): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new UnarchiveBookmarkCommand(id));
   }
 }
