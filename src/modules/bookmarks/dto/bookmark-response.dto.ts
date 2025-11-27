@@ -28,6 +28,13 @@ export class BookmarkResponseDto {
   websiteURL: string;
 
   @ApiProperty({
+    example: false,
+    description: 'Whether the bookmark is archived',
+    default: false,
+  })
+  archived: boolean;
+
+  @ApiProperty({
     type: [TagResponseDto],
     description: 'List of associated tags',
   })
