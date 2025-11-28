@@ -11,15 +11,17 @@ datasource db {
 }
 
 model Bookmark {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  websiteURL  String
-  archived    Boolean  @default(false)
-  pinned      Boolean  @default(false)
-  tags        BookmarkTag[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  websiteURL   String
+  archived     Boolean   @default(false)
+  pinned       Boolean   @default(false)
+  visitedCount Int       @default(0)
+  visitedAt    DateTime?
+  tags         BookmarkTag[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("bookmarks")
 }

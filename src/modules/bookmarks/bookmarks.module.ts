@@ -8,6 +8,7 @@ import { PinBookmarkHandler } from './commands/pin-bookmark.handler';
 import { UnarchiveBookmarkHandler } from './commands/unarchive-bookmark.handler';
 import { UnpinBookmarkHandler } from './commands/unpin-bookmark.handler';
 import { UpdateBookmarkHandler } from './commands/update-bookmark.handler';
+import { VisitBookmarkHandler } from './commands/visit-bookmark.handler';
 import { GetBookmarksHandler } from './queries/get-bookmarks.handler';
 
 @Module({
@@ -20,6 +21,7 @@ import { GetBookmarksHandler } from './queries/get-bookmarks.handler';
     UnarchiveBookmarkHandler,
     PinBookmarkHandler,
     UnpinBookmarkHandler,
+    VisitBookmarkHandler,
     GetBookmarksHandler,
     PrismaService,
   ],

@@ -42,6 +42,19 @@ export class BookmarkResponseDto {
   pinned: boolean;
 
   @ApiProperty({
+    example: 0,
+    description: 'Number of times the bookmark has been visited',
+    default: 0,
+  })
+  visitedCount: number;
+
+  @ApiProperty({
+    description: 'Timestamp of the last visit',
+    required: false,
+  })
+  visitedAt: Date | null;
+
+  @ApiProperty({
     type: [TagResponseDto],
     description: 'List of associated tags',
   })

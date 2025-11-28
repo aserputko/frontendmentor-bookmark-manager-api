@@ -15,6 +15,7 @@ import { PinBookmarkCommand } from './commands/pin-bookmark.command';
 import { UnarchiveBookmarkCommand } from './commands/unarchive-bookmark.command';
 import { UnpinBookmarkCommand } from './commands/unpin-bookmark.command';
 import { UpdateBookmarkCommand } from './commands/update-bookmark.command';
+import { VisitBookmarkCommand } from './commands/visit-bookmark.command';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 import { GetBookmarksQueryDto } from './dto/get-bookmarks-query.dto';
@@ -193,5 +194,25 @@ export class BookmarksController {
   })
   async unpin(@Param('id') id: string): Promise<BookmarkResponseDto> {
     return this.commandBus.execute(new UnpinBookmarkCommand(id));
+  }
+
+  @Patch(':id/visit')
+  @ApiOperation({ summary: 'Record a visit to a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bookmark visit recorded successfully',
+    type: BookmarkResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async visit(@Param('id') id: string): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new VisitBookmarkCommand(id));
   }
 }
