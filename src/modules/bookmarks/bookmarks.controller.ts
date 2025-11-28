@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiExtraModels,
@@ -11,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { ArchiveBookmarkCommand } from './commands/archive-bookmark.command';
 import { CreateBookmarkCommand } from './commands/create-bookmark.command';
+import { DeleteBookmarkCommand } from './commands/delete-bookmark.command';
 import { PinBookmarkCommand } from './commands/pin-bookmark.command';
 import { UnarchiveBookmarkCommand } from './commands/unarchive-bookmark.command';
 import { UnpinBookmarkCommand } from './commands/unpin-bookmark.command';
@@ -214,5 +227,29 @@ export class BookmarksController {
   })
   async visit(@Param('id') id: string): Promise<BookmarkResponseDto> {
     return this.commandBus.execute(new VisitBookmarkCommand(id));
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Bookmark deleted successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bookmark cannot be deleted because it is not archived',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async delete(@Param('id') id: string): Promise<void> {
+    return this.commandBus.execute(new DeleteBookmarkCommand(id));
   }
 }
