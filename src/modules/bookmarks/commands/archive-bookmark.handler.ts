@@ -29,11 +29,12 @@ export class ArchiveBookmarkHandler implements ICommandHandler<ArchiveBookmarkCo
       throw new NotFoundException(`Bookmark with ID ${id} not found`);
     }
 
-    // Update bookmark archived status
+    // Update bookmark archived status and unpin if pinned
     const bookmarkWithTags = await this.prisma.bookmark.update({
       where: { id },
       data: {
         archived: true,
+        pinned: false,
       },
       include: {
         tags: {
