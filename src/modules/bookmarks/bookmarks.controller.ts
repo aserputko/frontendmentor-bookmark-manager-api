@@ -32,13 +32,17 @@ import { VisitBookmarkCommand } from './commands/visit-bookmark.command';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 import { GetBookmarksQueryDto } from './dto/get-bookmarks-query.dto';
+import { GetTagsQueryDto } from './dto/get-tags-query.dto';
+import { TagWithCountResponseDto } from './dto/tag-with-count-response.dto';
 import { UpdateBookmarkDto } from './dto/update-bookmark.dto';
 import { GetBookmarksResponse } from './queries/get-bookmarks.handler';
 import { GetBookmarksQuery } from './queries/get-bookmarks.query';
+import { GetTagsResponse } from './queries/get-tags.handler';
+import { GetTagsQuery } from './queries/get-tags.query';
 
 @Controller('bookmarks')
 @ApiTags('bookmarks')
-@ApiExtraModels(BookmarkResponseDto)
+@ApiExtraModels(BookmarkResponseDto, TagWithCountResponseDto)
 export class BookmarksController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -93,6 +97,54 @@ export class BookmarksController {
     }
 
     return this.queryBus.execute(new GetBookmarksQuery(page, limit, query.search, archived));
+  }
+
+  @Get('tag-filters')
+  @ApiOperation({ summary: 'Get all tag filters' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of tags with counts',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: getSchemaPath(TagWithCountResponseDto) },
+        },
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            page: { type: 'number' },
+            limit: { type: 'number' },
+            totalPages: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'archived', required: false, type: Boolean, example: false })
+  async getFilters(
+    @Query() query: GetTagsQueryDto,
+    @Query('archived') rawArchived?: string | boolean,
+  ): Promise<GetTagsResponse> {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+
+    // Parse archived value - prioritize raw value to avoid transformation issues
+    let archived: boolean | undefined;
+    if (rawArchived !== undefined) {
+      // Parse raw value directly to avoid DTO transformation issues
+      const lowerValue = String(rawArchived).toLowerCase().trim();
+      archived = lowerValue === 'true' || lowerValue === '1';
+    } else if (query.archived !== undefined && typeof query.archived === 'boolean') {
+      archived = query.archived;
+    }
+    // If archived is undefined, it will default to false in the handler
+
+    return this.queryBus.execute(new GetTagsQuery(page, limit, archived));
   }
 
   @Post()

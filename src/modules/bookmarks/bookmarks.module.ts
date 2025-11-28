@@ -11,6 +11,7 @@ import { UnpinBookmarkHandler } from './commands/unpin-bookmark.handler';
 import { UpdateBookmarkHandler } from './commands/update-bookmark.handler';
 import { VisitBookmarkHandler } from './commands/visit-bookmark.handler';
 import { GetBookmarksHandler } from './queries/get-bookmarks.handler';
+import { GetTagsHandler } from './queries/get-tags.handler';
 
 @Module({
   imports: [CqrsModule],
@@ -25,6 +26,7 @@ import { GetBookmarksHandler } from './queries/get-bookmarks.handler';
     UnpinBookmarkHandler,
     VisitBookmarkHandler,
     GetBookmarksHandler,
+    GetTagsHandler,
     PrismaService,
   ],
 })
