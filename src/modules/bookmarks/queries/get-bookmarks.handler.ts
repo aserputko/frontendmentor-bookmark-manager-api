@@ -51,9 +51,14 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
         where,
         skip,
         take: limit,
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: [
+          {
+            pinned: 'desc',
+          },
+          {
+            createdAt: 'desc',
+          },
+        ],
         include: {
           tags: {
             include: {
