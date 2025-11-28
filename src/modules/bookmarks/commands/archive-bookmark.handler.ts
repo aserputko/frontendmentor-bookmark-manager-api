@@ -56,4 +56,3 @@ export class ArchiveBookmarkHandler implements ICommandHandler<ArchiveBookmarkCo
     return new BookmarkResponseDto(transformed);
   }
 }
-
