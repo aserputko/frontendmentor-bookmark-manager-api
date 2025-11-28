@@ -36,7 +36,7 @@ import { GetTagsQueryDto } from './dto/get-tags-query.dto';
 import { TagWithCountResponseDto } from './dto/tag-with-count-response.dto';
 import { UpdateBookmarkDto } from './dto/update-bookmark.dto';
 import { GetBookmarksResponse } from './queries/get-bookmarks.handler';
-import { GetBookmarksQuery } from './queries/get-bookmarks.query';
+import { BOOKMARK_SORT_BY_OPTIONS, GetBookmarksQuery } from './queries/get-bookmarks.query';
 import { GetTagsResponse } from './queries/get-tags.handler';
 import { GetTagsQuery } from './queries/get-tags.query';
 
@@ -77,6 +77,14 @@ export class BookmarksController {
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String, example: '' })
   @ApiQuery({ name: 'archived', required: false, type: Boolean, example: false })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: BOOKMARK_SORT_BY_OPTIONS,
+    example: 'recently-added',
+    description:
+      'Sort order for bookmarks. Options: recently-added, recently-visited, most-visited',
+  })
   async findAll(
     @Query() query: GetBookmarksQueryDto,
     @Query('archived') rawArchived?: string | boolean,
@@ -96,7 +104,9 @@ export class BookmarksController {
       archived = false;
     }
 
-    return this.queryBus.execute(new GetBookmarksQuery(page, limit, query.search, archived));
+    return this.queryBus.execute(
+      new GetBookmarksQuery(page, limit, query.search, archived, query.sortBy),
+    );
   }
 
   @Get('tag-filters')

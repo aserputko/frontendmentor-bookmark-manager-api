@@ -27,7 +27,7 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(query: GetBookmarksQuery): Promise<GetBookmarksResponse> {
-    const { page, limit, search, archived } = query;
+    const { page, limit, search, archived, sortBy } = query;
     const skip = (page - 1) * limit;
 
     const whereConditions: {
@@ -46,19 +46,38 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
 
     const where = whereConditions;
 
+    // Build orderBy array: pinned first, then by sortBy
+    const orderBy: Array<Record<string, 'asc' | 'desc'>> = [
+      {
+        pinned: 'desc',
+      },
+    ];
+
+    // Add secondary sort based on sortBy parameter
+    switch (sortBy) {
+      case 'recently-visited':
+        orderBy.push({ visitedAt: 'desc' });
+        // Fallback to createdAt for bookmarks without visitedAt
+        orderBy.push({ createdAt: 'desc' });
+        break;
+      case 'most-visited':
+        orderBy.push({ visitedCount: 'desc' });
+        // Fallback to createdAt for bookmarks with same visit count
+        orderBy.push({ createdAt: 'desc' });
+        break;
+      case 'recently-added':
+      default:
+        // Default to recently-added (createdAt desc)
+        orderBy.push({ createdAt: 'desc' });
+        break;
+    }
+
     const [bookmarks, total]: [BookmarkWithTags[], number] = await Promise.all([
       this.prisma.bookmark.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [
-          {
-            pinned: 'desc',
-          },
-          {
-            createdAt: 'desc',
-          },
-        ],
+        orderBy,
         include: {
           tags: {
             include: {

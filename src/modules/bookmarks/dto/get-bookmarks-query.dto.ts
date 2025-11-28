@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { BOOKMARK_SORT_BY_OPTIONS, BookmarkSortBy } from '../queries/get-bookmarks.query';
 
 function parseBoolean(value: unknown): boolean | undefined {
   if (value === undefined || value === null) {
@@ -69,4 +70,15 @@ export class GetBookmarksQueryDto {
   @Transform(({ value }) => parseBoolean(value))
   @IsBoolean()
   archived?: boolean;
+
+  @ApiProperty({
+    example: 'recently-added',
+    description:
+      'Sort order for bookmarks. Options: recently-added, recently-visited, most-visited',
+    enum: BOOKMARK_SORT_BY_OPTIONS,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(BOOKMARK_SORT_BY_OPTIONS)
+  sortBy?: BookmarkSortBy;
 }
