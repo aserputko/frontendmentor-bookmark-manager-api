@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "bookmarks" ALTER COLUMN "visitedAt" SET DEFAULT CURRENT_TIMESTAMP;

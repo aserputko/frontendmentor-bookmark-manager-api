@@ -18,7 +18,7 @@ model Bookmark {
   archived     Boolean   @default(false)
   pinned       Boolean   @default(false)
   visitedCount Int       @default(0)
-  visitedAt    DateTime?
+  visitedAt    DateTime? @default(now())
   tags         BookmarkTag[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

@@ -57,13 +57,9 @@ export class GetBookmarksHandler implements IQueryHandler<GetBookmarksQuery> {
     switch (sortBy) {
       case 'recently-visited':
         orderBy.push({ visitedAt: 'desc' });
-        // Fallback to createdAt for bookmarks without visitedAt
-        orderBy.push({ createdAt: 'desc' });
         break;
       case 'most-visited':
         orderBy.push({ visitedCount: 'desc' });
-        // Fallback to createdAt for bookmarks with same visit count
-        orderBy.push({ createdAt: 'desc' });
         break;
       case 'recently-added':
       default:
