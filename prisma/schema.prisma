@@ -16,6 +16,7 @@ model Bookmark {
   description String?
   websiteURL  String
   archived    Boolean  @default(false)
+  pinned      Boolean  @default(false)
   tags        BookmarkTag[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

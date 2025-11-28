@@ -11,7 +11,9 @@ import {
 } from '@nestjs/swagger';
 import { ArchiveBookmarkCommand } from './commands/archive-bookmark.command';
 import { CreateBookmarkCommand } from './commands/create-bookmark.command';
+import { PinBookmarkCommand } from './commands/pin-bookmark.command';
 import { UnarchiveBookmarkCommand } from './commands/unarchive-bookmark.command';
+import { UnpinBookmarkCommand } from './commands/unpin-bookmark.command';
 import { UpdateBookmarkCommand } from './commands/update-bookmark.command';
 import { BookmarkResponseDto } from './dto/bookmark-response.dto';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
@@ -151,5 +153,45 @@ export class BookmarksController {
   })
   async unarchive(@Param('id') id: string): Promise<BookmarkResponseDto> {
     return this.commandBus.execute(new UnarchiveBookmarkCommand(id));
+  }
+
+  @Patch(':id/pin')
+  @ApiOperation({ summary: 'Pin a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bookmark pinned successfully',
+    type: BookmarkResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async pin(@Param('id') id: string): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new PinBookmarkCommand(id));
+  }
+
+  @Patch(':id/unpin')
+  @ApiOperation({ summary: 'Unpin a bookmark' })
+  @ApiParam({
+    name: 'id',
+    description: 'Bookmark ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bookmark unpinned successfully',
+    type: BookmarkResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Bookmark not found',
+  })
+  async unpin(@Param('id') id: string): Promise<BookmarkResponseDto> {
+    return this.commandBus.execute(new UnpinBookmarkCommand(id));
   }
 }

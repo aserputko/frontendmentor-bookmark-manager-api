@@ -35,6 +35,13 @@ export class BookmarkResponseDto {
   archived: boolean;
 
   @ApiProperty({
+    example: false,
+    description: 'Whether the bookmark is pinned',
+    default: false,
+  })
+  pinned: boolean;
+
+  @ApiProperty({
     type: [TagResponseDto],
     description: 'List of associated tags',
   })
