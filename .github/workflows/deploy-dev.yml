@@ -55,10 +55,10 @@ jobs:
                   tags: ${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-from: type=registry,ref=${{ env.AWS_ECR_REGISTRY }}/${{ env.AWS_ECR_REPOSITORY }}:latest
                   cache-to: type=inline
-            - name: Force ECS deployment
-              run: |
-                  aws ecs update-service \
-                      --cluster ${{ env.AWS_ECS_CLUSTER }} \
-                      --service ${{ env.AWS_ECS_SERVICE }} \
-                      --force-new-deployment \
-                      --region ${{ env.AWS_REGION }}
+            # - name: Force ECS deployment
+            #   run: |
+            #       aws ecs update-service \
+            #           --cluster ${{ env.AWS_ECS_CLUSTER }} \
+            #           --service ${{ env.AWS_ECS_SERVICE }} \
+            #           --force-new-deployment \
+            #           --region ${{ env.AWS_REGION }}
